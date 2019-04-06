@@ -303,6 +303,14 @@ respondent_sum$total_score <- rowSums(respondent_sum[,c(3,4,5,6)])
 
 ```
 
+```{r}
+hist(respondent_sum$total_score, main="Score distribution all respondents")
+
+hist(respondent_sum$total_score[respondent_sum$treatment==1], main="Score distribution, Treatment only")
+hist(respondent_sum$total_score[respondent_sum$treatment==0], main="Score distribution, Control only")
+
+
+```
 
 
 ```{r}

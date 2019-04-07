@@ -31,11 +31,11 @@ pilot_data_char <- read.csv("./data/w241_final_project_final_data.csv", header =
 #remove the header rows and preview data
 pilot_data1 <- pilot_data[-1:-2,]
 pilot_data1 <- pilot_data1[which(pilot_data1$DistributionChannel != 'preview'),]
-
+pilot_data1 <- pilot_data1[-1:-11,]
 
 pilot_data_char1 <- pilot_data_char[-1:-2,]
 pilot_data_char1 <- pilot_data_char1[which(pilot_data_char1$DistributionChannel != 'preview'),]
-
+pilot_data_char1 <- pilot_data_char1[-1:-11,]
 ```
 
 ```{r}
@@ -89,6 +89,48 @@ cv_balance1<-cbind(ResponseID, trsf)
 
 ```
 
+```{r}
+cv <- data.table(pilot_data_char1[c("treatment", "Q16", "Q18", "Q45", "Q20", "Q46", "Q47", "Q29")])
+cv <- subset(cv, !(is.na(treatment)))
+
+data(cv)
+cv <- tbl_df(cv)
+
+#Count frequency
+freq <- function(column) {
+    group_by(cv$treatment, cv$Q16) %>%
+    summarise(n = n()) %>% 
+    mutate(freq = n / sum(n))
+}
+
+freq('Q16')
+
+
+
+
+freq_table <- function(x, 
+                       group_var, 
+                       prop_var) {
+  group_var <- enquo(group_var)
+  prop_var  <- enquo(prop_var)
+  x %>% 
+    group_by(!!group_var, !!prop_var) %>% 
+    summarise(n = n()) %>% 
+    mutate(freq = n /sum(n)) %>% 
+    ungroup
+}
+
+Q16 <- freq_table(cv, treatment, Q16)
+
+
+
+Q18 <- freq_table(cv, treatment, Q18)
+Q45 <- freq_table(cv, treatment, Q45)
+Q20 <- freq_table(cv, treatment, Q20)
+Q46 <- freq_table(cv, treatment, Q46)
+Q47 <- freq_table(cv, treatment, Q47)
+Q29 <- freq_table(cv, treatment, Q29)
+```
 
 
 

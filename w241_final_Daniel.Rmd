@@ -1,0 +1,359 @@
+---
+title: "W241_final_Project"
+author: "Rachel Ho, Daniel Olmstead, Keith LoMurray"
+date: "3/31/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(data.table)
+#library(mlogit)
+library(ggplot2)
+```
+
+**Items to do: Covariate balance check**
+
+
+
+```{r}
+
+pilot_data <- read.csv("./data/w241_final_project_final_data_numeric.csv", header = TRUE, stringsAsFactors=FALSE)
+
+#remove the header rows and preview data
+pilot_data1 <- pilot_data[-1:-2,]
+pilot_data1 <- pilot_data1[which(pilot_data1$DistributionChannel != 'preview'),]
+
+```
+
+```{r}
+pilot_data1$duration <- as.numeric(pilot_data1$Duration..in.seconds.)
+print(sprintf("Mean duration of survey completition in minutes: %.4f.", mean(pilot_data1$duration)/60))
+```
+
+
+```{r pressure, echo=FALSE}
+
+barplot(table(pilot_data1$Q18), main='Age Range')
+
+barplot(table(pilot_data1$Q16), main='Gender')
+barplot(table(pilot_data1$Q45), main='Race')
+barplot(table(pilot_data1$Q20), main='Salary')
+barplot(table(pilot_data1$Q46), main='Education')
+barplot(table(pilot_data1$Q47), main='Martial Status')
+barplot(table(pilot_data1$Q29), main='MK Familiarity')
+
+```
+
+
+```{r}
+#Code which video the person watched
+
+pilot_data1$kondo_video_01 <- ifelse(pilot_data1$Q21 == "" & pilot_data1$Q22 != "", 0, NaN)
+pilot_data1$kondo_video_01 <- ifelse(pilot_data1$Q21 != "" & pilot_data1$Q22 == "", 1, pilot_data1$kondo_video_01)
+
+#25,30
+check_code <- pilot_data1[c("Q21", "Q22", "kondo_video_01")]
+
+count(check_code, vars=kondo_video_01)
+                              
+```
+
+```{r}
+row1 <- pilot_data[1,]
+print(row1$C1)
+```
+```{r}
+raw_data <- data.table(pilot_data1)
+```
+
+
+```{r}
+# map clothing attributes and levels to each option presented in each question
+clothing <- raw_data[1, c("attr1.1.1", "attr1.1.2", "attr1.1.3", "attr1.2.1", "attr1.2.2", "attr1.2.3", "attr1.3.1", "attr1.3.2", "attr1.3.3", "attr1.4.1", "attr1.4.2", "attr1.4.3", "attr1.5.1", "attr1.5.2", "attr1.5.3", "attr1.6.1", "attr1.6.2", "attr1.6.3", "attr1.7.1", "attr1.7.2", "attr1.7.3", "attr1.8.1", "attr1.8.2", "attr1.8.3", "attr1.9.1", "attr1.9.2", "attr1.9.3", "attr1.10.1", "attr1.10.2", "attr1.10.3", "attr1.11.1", "attr1.11.2", "attr1.11.3", "attr1.12.1", "attr1.12.2", "attr1.12.3", "attr1.13.1", "attr1.13.2", "attr1.13.3", "attr1.14.1", "attr1.14.2", "attr1.14.3", "attr1.15.1", "attr1.15.2", "attr1.15.3")]
+clothing
+transpose(clothing)
+```
+
+```{r}
+# map book attributes and levels to each option presented in each question
+book <- raw_data[1, c("attr2.1.1", "attr2.1.2", "attr2.1.3", "attr2.2.1", "attr2.2.2", "attr2.2.3", "attr2.3.1", "attr2.3.2", "attr2.3.3", "attr2.4.1", "attr2.4.2", "attr2.4.3", "attr2.5.1", "attr2.5.2", "attr2.5.3", "attr2.6.1", "attr2.6.2", "attr2.6.3", "attr2.7.1", "attr2.7.2", "attr2.7.3", "attr2.8.1", "attr2.8.2", "attr2.8.3", "attr2.9.1", "attr2.9.2", "attr2.9.3", "attr2.10.1", "attr2.10.2", "attr2.10.3", "attr2.11.1", "attr2.11.2", "attr2.11.3", "attr2.12.1", "attr2.12.2", "attr2.12.3", "attr2.13.1", "attr2.13.2", "attr2.13.3", "attr2.14.1", "attr2.14.2", "attr2.14.3", "attr2.15.1", "attr2.15.2", "attr2.15.3")]
+transpose(book)
+```
+```{r}
+# map paper attributes and levels to each option presented in each question
+paper <- raw_data[1, c("attr3.1.1", "attr3.1.2", "attr3.1.3", "attr3.2.1", "attr3.2.2", "attr3.2.3", "attr3.3.1", "attr3.3.2", "attr3.3.3", "attr3.4.1", "attr3.4.2", "attr3.4.3", "attr3.5.1", "attr3.5.2", "attr3.5.3", "attr3.6.1", "attr3.6.2", "attr3.6.3", "attr3.7.1", "attr3.7.2", "attr3.7.3", "attr3.8.1", "attr3.8.2", "attr3.8.3", "attr3.9.1", "attr3.9.2", "attr3.9.3", "attr3.10.1", "attr3.10.2", "attr3.10.3", "attr3.11.1", "attr3.11.2", "attr3.11.3", "attr3.12.1", "attr3.12.2", "attr3.12.3", "attr3.13.1", "attr3.13.2", "attr3.13.3", "attr3.14.1", "attr3.14.2", "attr3.14.3", "attr3.15.1", "attr3.15.2", "attr3.15.3")]
+transpose(paper)
+```
+
+```{r}
+# map sentimental attributes and levels to each option presented in each question
+sentimental <- raw_data[1, c("attr4.1.1", "attr4.1.2", "attr4.1.3", "attr4.2.1", "attr4.2.2", "attr4.2.3", "attr4.3.1", "attr4.3.2", "attr4.3.3", "attr4.4.1", "attr4.4.2", "attr4.4.3", "attr4.5.1", "attr4.5.2", "attr4.5.3", "attr4.6.1", "attr4.6.2", "attr4.6.3", "attr4.7.1", "attr4.7.2", "attr4.7.3", "attr4.8.1", "attr4.8.2", "attr4.8.3", "attr4.9.1", "attr4.9.2", "attr4.9.3", "attr4.10.1", "attr4.10.2", "attr4.10.3", "attr4.11.1", "attr4.11.2", "attr4.11.3", "attr4.12.1", "attr4.12.2", "attr4.12.3", "attr4.13.1", "attr4.13.2", "attr4.13.3", "attr4.14.1", "attr4.14.2", "attr4.14.3", "attr4.15.1", "attr4.15.2", "attr4.15.3")]
+transpose(sentimental)
+```
+
+```{r}
+# create new data table with following structure:
+# one row per option per question per correspondent
+# dimension of table = # correspondent (219) x # question (15) x # option (3)
+n_respondent = nrow(raw_data)
+n_question = 15
+n_option = 3
+dt <- data.table(ResponseId = rep(raw_data$ResponseId, each = n_question*n_option),
+                # id = rep(1:n_respondent, each = n_question*n_option),
+                 question = rep(1:n_question, each = n_option),
+                 option = 1:n_option,
+                 clothing = transpose(clothing)$V1,
+                 book = transpose(book)$V1,
+                 paper = transpose(paper)$V1,
+                 sentimental = transpose(sentimental)$V1)
+  
+dt
+```
+```{r}
+choice_1 <- raw_data[, c("ResponseId","C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11", "C12", "C13", "C14", "C15")]
+choice_1
+```
+```{r}
+choice_2 <- melt(choice_1, id.vars = c("ResponseId"), measured.ids = c("C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11", "C12", "C13", "C14", "C15"))
+choice_2
+choice_2 <- choice_2[, .(ResponseId, variable = substring(variable, 2), value)]
+choice_2
+choice_3 <- choice_2[order(ResponseId), ]
+choice_3
+```
+```{r}
+choice_4 <- vector()
+for (i in 1:(n_respondent*n_question)) {
+  if (choice_3[i, value] == 1) {
+    choice_4 <- c(choice_4, 1, 0, 0)
+  } else if (choice_3[i, value] == 2) {
+    choice_4 <- c(choice_4, 0, 1, 0)
+  } else {
+    choice_4 <- c(choice_4, 0, 0, 1)
+  }
+}
+choice_4[1:30]
+```
+
+
+```{r}
+choice <- data.table(ResponseId = rep(choice_3$ResponseId, each = n_option),
+                     question = as.integer(rep(choice_3$variable, each = n_option)),
+                     choice = choice_4,
+                     option = rep(1:3))
+choice
+```
+
+```{r}
+dt <- merge(dt, choice, by = c("ResponseId", "question", "option"))
+dt
+```
+
+```{r}
+treatment_1 <- raw_data[, c("ResponseId","Q21", "Q22")]
+treatment_1
+```
+
+```{r}
+#We have 1 respondent that attrited during the study
+subset(treatment_1, Q21 == '' & Q22 =='')
+```
+
+
+
+```{r}
+treatment_1$treatment = ifelse(treatment_1$Q21 == 1, 1, 0)
+treatment_1
+```
+
+```{r}
+treatment_2 = treatment_1[rep(seq_len(nrow(treatment_1)), each = n_question*n_option),]
+treatment_2
+```
+
+```{r}
+treatment <- data.table(ResponseId = treatment_2$ResponseId,
+                        treatment = treatment_2$treatment,
+                        question = rep(1:15, each = n_option),
+                        option = rep(1:3))
+treatment
+```
+
+```{r}
+dt <- merge(dt, treatment, by = c("ResponseId", "question", "option"))
+dt
+```
+
+```{r}
+write.csv(dt, file="output_data.csv")
+```
+
+```{r}
+#Verify that each option was displayed the same number of times
+#Output shoes that everything appears to be working as expected
+
+sentimental_df_display <- data.frame(table(dt$sentimental, dt$treatment))
+clothing_df_display <- data.frame(table(dt$clothing, dt$treatment))
+paper_df_display <- data.frame(table(dt$paper, dt$treatment))
+book_df_display <- data.frame(table(dt$book, dt$treatment))
+
+
+p <- ggplot(sentimental_df_display, aes(fill=Var1, y=Freq, x=Var2)) + 
+    geom_bar(position="dodge", stat="identity") + 
+    scale_fill_brewer(palette = "Set1") 
+update_labels(p, list(x="Treatment"))
+
+p <- ggplot(clothing_df_display, aes(fill=Var1, y=Freq, x=Var2)) + 
+    geom_bar(position="dodge", stat="identity") + 
+    scale_fill_brewer(palette = "Set1") 
+update_labels(p, list(x="Treatment"))
+
+p <- ggplot(paper_df_display, aes(fill=Var1, y=Freq, x=Var2)) + 
+    geom_bar(position="dodge", stat="identity") + 
+    scale_fill_brewer(palette = "Set1") 
+update_labels(p, list(x="Treatment"))
+
+p <- ggplot(book_df_display, aes(fill=Var1, y=Freq, x=Var2)) + 
+    geom_bar(position="dodge", stat="identity") + 
+    scale_fill_brewer(palette = "Set1") 
+update_labels(p, list(x="Treatment"))
+
+
+```
+
+```{r}
+
+# CDC Counts analyze the data by counting number of times an attribute level is selected relative to number of times
+# it was available as choice
+
+#Review the number of selections for each option
+
+selected_only <- subset(dt, choice==1)
+sentimental_df <- data.frame(table(selected_only$sentimental, selected_only$treatment))
+sentimental_df$counts <- ifelse(sentimental_df$Var2 == 1, sentimental_df$Freq / 1605, sentimental_df$Freq / 1695)
+
+clothing_df <- data.frame(table(selected_only$clothing, selected_only$treatment))
+clothing_df$counts <- ifelse(clothing_df$Var2 == 1, clothing_df$Freq / 1605, clothing_df$Freq / 1695)
+
+
+paper_df <- data.frame(table(selected_only$paper, selected_only$treatment))
+paper_df$counts <- ifelse(paper_df$Var2 == 1, paper_df$Freq / 1605, paper_df$Freq / 1695)
+
+book_df <- data.frame(table(selected_only$book, selected_only$treatment))
+book_df$counts <- ifelse(book_df$Var2 == 1, book_df$Freq / 1605, book_df$Freq / 1695)
+
+
+p <- ggplot(sentimental_df, aes(fill=Var1, y=counts, x=Var2)) + 
+    geom_bar(position="dodge", stat="identity") + 
+    scale_fill_brewer(palette = "Set1") 
+update_labels(p, list(x="Treatment"))
+
+p <- ggplot(clothing_df, aes(fill=Var1, y=counts, x=Var2)) + 
+    geom_bar(position="dodge", stat="identity") + 
+    scale_fill_brewer(palette = "Set1") 
+update_labels(p, list(x="Treatment"))
+
+p <- ggplot(paper_df, aes(fill=Var1, y=counts, x=Var2)) + 
+    geom_bar(position="dodge", stat="identity") + 
+    scale_fill_brewer(palette = "Set1") 
+update_labels(p, list(x="Treatment"))
+
+p <- ggplot(book_df, aes(fill=Var1, y=counts, x=Var2)) + 
+    geom_bar(position="dodge", stat="identity") + 
+    scale_fill_brewer(palette = "Set1") 
+update_labels(p, list(x="Treatment"))
+
+
+```
+
+**People exposed to treatment appear to be less likely to want a room full of books or 50 pairs of shoes compared to the control video.**
+
+***Parts Worth Utilities***
+```{r}
+dt$clothing_utility <- ifelse(dt$clothing == "One pair of shoes", -1, NaN)
+dt$clothing_utility <- ifelse(dt$clothing == "Ten pairs of shoes", 0, dt$clothing_utility)
+dt$clothing_utility <- ifelse(dt$clothing == "Fifty pairs of shoes", 1, dt$clothing_utility)
+
+
+dt$book_utility <- ifelse(dt$book == "Zero paper books", -1, NaN)
+dt$book_utility <- ifelse(dt$book == "A small case of books (~25 books)", 0, dt$book_utility)
+dt$book_utility <- ifelse(dt$book == "A room full of books (100 books)", 1, dt$book_utility)
+
+
+dt$paper_utility <- ifelse(dt$paper == "No tax documents stored after filing", -1, NaN)
+dt$paper_utility <- ifelse(dt$paper == "Keep tax documents for 1 year after filing", 0, dt$paper_utility)
+dt$paper_utility <- ifelse(dt$paper == "Keep tax documents for 5 years after filing", 1, dt$paper_utility)
+
+dt$sent_utility <- ifelse(dt$sentimental == "Zero framed photographs of loved ones on display", -1, NaN)
+dt$sent_utility <- ifelse(dt$sentimental == "Five framed photographs of loved ones on display", 0, dt$sent_utility)
+dt$sent_utility <- ifelse(dt$sentimental == "Ten or more framed photographs of loved ones on display", 1, dt$sent_utility)
+
+
+selected_only <- subset(dt, choice==1)
+
+respondent_sum <- selected_only[, .(sum_clothing=sum(clothing_utility), 
+                                    sum_paper=sum(paper_utility), 
+                                    sum_book=sum(book_utility), 
+                                    sum_sent=sum(sent_utility)),
+                                keyby=.(ResponseId, treatment)]
+
+respondent_sum$total_score <- rowSums(respondent_sum[,c(3,4,5,6)]) 
+
+
+```
+
+```{r}
+hist(respondent_sum$total_score, main="Score distribution all respondents")
+hist(respondent_sum$total_score[respondent_sum$treatment==1], main="Score distribution, Treatment only")
+hist(respondent_sum$total_score[respondent_sum$treatment==0], main="Score distribution, Control only")
+
+hist(respondent_sum$sum_clothing, main="Clothing distribution all respondents")
+hist(respondent_sum$sum_clothing[respondent_sum$treatment==1], main="Clothing distribution, Treatment only")
+hist(respondent_sum$sum_clothing[respondent_sum$treatment==0], main="Clothing distribution, Control only")
+
+hist(respondent_sum$sum_paper, main="Paper distribution all respondents")
+hist(respondent_sum$sum_paper[respondent_sum$treatment==1], main="Paper distribution, Treatment only")
+hist(respondent_sum$sum_paper[respondent_sum$treatment==0], main="Paper distribution, Control only")
+
+hist(respondent_sum$sum_book, main="Book distribution all respondents")
+hist(respondent_sum$sum_book[respondent_sum$treatment==1], main="Book distribution, Treatment only")
+hist(respondent_sum$sum_book[respondent_sum$treatment==0], main="Book distribution, Control only")
+
+hist(respondent_sum$sum_sent, main="Sentimental distribution all respondents")
+hist(respondent_sum$sum_sent[respondent_sum$treatment==1], main="Sentimental distribution, Treatment only")
+hist(respondent_sum$sum_sent[respondent_sum$treatment==0], main="Sentimental distribution, Control only")
+
+
+```
+
+
+```{r}
+base_model <- lm(total_score ~ treatment, data = respondent_sum)
+summary(base_model)
+```
+```{r}
+avg_choice = dt[choice==1, .(treatment, choice=rowMeans(.SD)), by=ResponseId, .SDcols = c("clothing_utility", "book_utility", "paper_utility", "sent_utility")]
+choice_control = avg_choice[treatment==0, choice]
+choice_treatment = avg_choice[treatment==1, choice]
+t.test(choice_control, choice_treatment)
+```
+```{r}
+avg_set = avg_choice[, .(avg=mean(choice)), by=.(ResponseId, treatment)]
+model=lm(avg_set[, avg] ~ avg_set[, treatment])
+summary(model)
+```
+
+
+```{r}
+sum_choice = dt[choice==1, .(treatment, choice=rowSums(.SD)), by=ResponseId, .SDcols = c("clothing_utility", "book_utility", "paper_utility", "sent_utility")]
+sum_set = sum_choice[, .(total=sum(choice)), by=.(ResponseId, treatment)]
+```
+
+```{r}
+model=lm(sum_set[, total] ~ sum_set[, treatment])
+summary(model)
+```

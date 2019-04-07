@@ -49,8 +49,12 @@ print(sprintf("Mean duration of survey completition in minutes: %.4f.", mean(pil
 pilot_data1$treatment <- ifelse(pilot_data1$Q21 == "" & pilot_data1$Q22 != "", 0, NaN)
 pilot_data1$treatment <- ifelse(pilot_data1$Q21 != "" & pilot_data1$Q22 == "", 1, pilot_data1$treatment)
 
+pilot_data_char1$treatment <- ifelse(pilot_data_char1$Q21 == "" & pilot_data_char1$Q22 != "", 0, NaN)
+pilot_data_char1$treatment <- ifelse(pilot_data_char1$Q21 != "" & pilot_data_char1$Q22 == "", 1, pilot_data_char1$treatment)
+
+
 #25,30
-check_code <- pilot_data1[c("Q21", "Q22", "treatment")]
+check_code <- pilot_data_char1[c("Q21", "Q22", "treatment")]
 
 count(check_code, vars=treatment)
                               
@@ -92,23 +96,25 @@ cv_balance1<-cbind(ResponseID, trsf)
 library(cobalt)
 library(MatchIt)
 
+cobalt_table <- data.table(pilot_data_char1[c("treatment", "Q16", "Q18", "Q45", "Q20", "Q46", "Q47", "Q29")])
+cobalt_table<- subset(cobalt_table, !(is.na(treatment)))
 
-#m.out<-matchit(treatment ~ Q16 + Q18 + Q45 + Q20 + Q46 + Q47 + Q29, data=cv_balance)
+m.out<-matchit(treatment ~ Q16 + Q18 + Q45 + Q20 + Q46 + Q47 + Q29, data=cobalt_table)
 
-#bal.tab(m.out, m.threshold = 0.1, un=TRUE)
+bal.tab(m.out, m.threshold = 0.1, un=TRUE)
 ```
 ```{r}
-# bal.plot(m.out, var.name = "Q16")
-# bal.plot(m.out, var.name = "Q18")
-# bal.plot(m.out, var.name = "Q45")
-# bal.plot(m.out, var.name = "Q20")
-# bal.plot(m.out, var.name = "Q46")
-# bal.plot(m.out, var.name = "Q47")
-# bal.plot(m.out, var.name = "Q29")
+ bal.plot(m.out, var.name = "Q16")
+ bal.plot(m.out, var.name = "Q18")
+ bal.plot(m.out, var.name = "Q45")
+ bal.plot(m.out, var.name = "Q20")
+ bal.plot(m.out, var.name = "Q46")
+ bal.plot(m.out, var.name = "Q47")
+ bal.plot(m.out, var.name = "Q29")
 ```
 
 ```{r}
-#love.plot(bal.tab(m.out), threshold = 0.1, abs = TRUE, var.order = "unadjusted")
+love.plot(bal.tab(m.out), threshold = 0.1, abs = TRUE, var.order = "unadjusted")
 ```
 
 

@@ -13,6 +13,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(data.table)
 #library(mlogit)
 library(ggplot2)
+library(dplyr)
+library(caret)
+library(mltools)
 ```
 
 **Items to do: Covariate balance check**
@@ -23,9 +26,15 @@ library(ggplot2)
 
 pilot_data <- read.csv("./data/w241_final_project_final_data_numeric.csv", header = TRUE, stringsAsFactors=FALSE)
 
+pilot_data_char <- read.csv("./data/w241_final_project_final_data.csv", header = TRUE, stringsAsFactors=FALSE)
+
 #remove the header rows and preview data
 pilot_data1 <- pilot_data[-1:-2,]
 pilot_data1 <- pilot_data1[which(pilot_data1$DistributionChannel != 'preview'),]
+
+
+pilot_data_char1 <- pilot_data_char[-1:-2,]
+pilot_data_char1 <- pilot_data_char1[which(pilot_data_char1$DistributionChannel != 'preview'),]
 
 ```
 
@@ -34,6 +43,18 @@ pilot_data1$duration <- as.numeric(pilot_data1$Duration..in.seconds.)
 print(sprintf("Mean duration of survey completition in minutes: %.4f.", mean(pilot_data1$duration)/60))
 ```
 
+```{r}
+#Code which video the person watched
+
+pilot_data1$treatment <- ifelse(pilot_data1$Q21 == "" & pilot_data1$Q22 != "", 0, NaN)
+pilot_data1$treatment <- ifelse(pilot_data1$Q21 != "" & pilot_data1$Q22 == "", 1, pilot_data1$treatment)
+
+#25,30
+check_code <- pilot_data1[c("Q21", "Q22", "treatment")]
+
+count(check_code, vars=treatment)
+                              
+```
 
 ```{r pressure, echo=FALSE}
 
@@ -47,20 +68,49 @@ barplot(table(pilot_data1$Q47), main='Martial Status')
 barplot(table(pilot_data1$Q29), main='MK Familiarity')
 
 ```
+***Covariate Balance Check**
+
+```{r}
+## Pull out the covariate data
+ResponseID <- data.table(pilot_data_char1[c("ResponseId")])
+cv_balance_var_only <- data.table(pilot_data_char1[c("Q16", "Q18", "Q45", "Q20", "Q46", "Q47", "Q29")])
+```
+
+```{r}
+dmy<-dummyVars("~ .", data=cv_balance_var_only, fullRank=TRUE)
+trsf<-data.frame(predict(dmy, newdata=cv_balance_var_only))
+
+cv_balance1<-cbind(ResponseID, trsf)
+
+
+```
+
+
 
 
 ```{r}
-#Code which video the person watched
+library(cobalt)
+library(MatchIt)
 
-pilot_data1$kondo_video_01 <- ifelse(pilot_data1$Q21 == "" & pilot_data1$Q22 != "", 0, NaN)
-pilot_data1$kondo_video_01 <- ifelse(pilot_data1$Q21 != "" & pilot_data1$Q22 == "", 1, pilot_data1$kondo_video_01)
 
-#25,30
-check_code <- pilot_data1[c("Q21", "Q22", "kondo_video_01")]
+#m.out<-matchit(treatment ~ Q16 + Q18 + Q45 + Q20 + Q46 + Q47 + Q29, data=cv_balance)
 
-count(check_code, vars=kondo_video_01)
-                              
+#bal.tab(m.out, m.threshold = 0.1, un=TRUE)
 ```
+```{r}
+# bal.plot(m.out, var.name = "Q16")
+# bal.plot(m.out, var.name = "Q18")
+# bal.plot(m.out, var.name = "Q45")
+# bal.plot(m.out, var.name = "Q20")
+# bal.plot(m.out, var.name = "Q46")
+# bal.plot(m.out, var.name = "Q47")
+# bal.plot(m.out, var.name = "Q29")
+```
+
+```{r}
+#love.plot(bal.tab(m.out), threshold = 0.1, abs = TRUE, var.order = "unadjusted")
+```
+
 
 ```{r}
 row1 <- pilot_data[1,]
@@ -335,4 +385,47 @@ hist(respondent_sum$sum_sent[respondent_sum$treatment==0], main="Sentimental dis
 base_model <- lm(total_score ~ treatment, data = respondent_sum)
 summary(base_model)
 ```
+
+```{r}
+#Including covariates in model
+respondent_sum_w_cov <- merge(respondent_sum, cv_balance1, by="ResponseId")
+
+respondent_sum_w_cov1 <- respondent_sum_w_cov[, c("ResponseId", "sum_clothing", "sum_paper", "sum_book", "sum_sent"):=NULL]
+
+base_model <- lm(total_score ~ . , data = respondent_sum_w_cov1)
+summary(base_model)
+```
+
+
+
+
+
+```{r}
+avg_choice = dt[choice==1, .(treatment, choice=rowMeans(.SD)), by=ResponseId, .SDcols = c("clothing_utility", "book_utility", "paper_utility", "sent_utility")]
+choice_control = avg_choice[treatment==0, choice]
+choice_treatment = avg_choice[treatment==1, choice]
+t.test(choice_control, choice_treatment)
+```
+
+
+```{r}
+avg_set = avg_choice[, .(avg=mean(choice)), by=.(ResponseId, treatment)]
+model=lm(avg_set[, avg] ~ avg_set[, treatment])
+summary(model)
+```
+
+
+```{r}
+sum_choice = dt[choice==1, .(treatment, choice=rowSums(.SD)), by=ResponseId, .SDcols = c("clothing_utility", "book_utility", "paper_utility", "sent_utility")]
+sum_set = sum_choice[, .(total=sum(choice)), by=.(ResponseId, treatment)]
+```
+
+
+```{r}
+model=lm(sum_set[, total] ~ sum_set[, treatment])
+summary(model)
+```
+
+
+
 

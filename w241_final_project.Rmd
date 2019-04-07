@@ -15,6 +15,9 @@ library(data.table)
 library(ggplot2)
 ```
 
+**Items to do: Covariate balance check**
+
+
 
 ```{r}
 
@@ -305,9 +308,24 @@ respondent_sum$total_score <- rowSums(respondent_sum[,c(3,4,5,6)])
 
 ```{r}
 hist(respondent_sum$total_score, main="Score distribution all respondents")
-
 hist(respondent_sum$total_score[respondent_sum$treatment==1], main="Score distribution, Treatment only")
 hist(respondent_sum$total_score[respondent_sum$treatment==0], main="Score distribution, Control only")
+
+hist(respondent_sum$sum_clothing, main="Clothing distribution all respondents")
+hist(respondent_sum$sum_clothing[respondent_sum$treatment==1], main="Clothing distribution, Treatment only")
+hist(respondent_sum$sum_clothing[respondent_sum$treatment==0], main="Clothing distribution, Control only")
+
+hist(respondent_sum$sum_paper, main="Paper distribution all respondents")
+hist(respondent_sum$sum_paper[respondent_sum$treatment==1], main="Paper distribution, Treatment only")
+hist(respondent_sum$sum_paper[respondent_sum$treatment==0], main="Paper distribution, Control only")
+
+hist(respondent_sum$sum_book, main="Book distribution all respondents")
+hist(respondent_sum$sum_book[respondent_sum$treatment==1], main="Book distribution, Treatment only")
+hist(respondent_sum$sum_book[respondent_sum$treatment==0], main="Book distribution, Control only")
+
+hist(respondent_sum$sum_sent, main="Sentimental distribution all respondents")
+hist(respondent_sum$sum_sent[respondent_sum$treatment==1], main="Sentimental distribution, Treatment only")
+hist(respondent_sum$sum_sent[respondent_sum$treatment==0], main="Sentimental distribution, Control only")
 
 
 ```

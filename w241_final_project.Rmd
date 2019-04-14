@@ -18,24 +18,27 @@ library(caret)
 library(mltools)
 ```
 
-**Items to do: Covariate balance check**
-
 
 
 ```{r}
 
-pilot_data <- read.csv("./data/w241_final_project_final_data_numeric.csv", header = TRUE, stringsAsFactors=FALSE)
+pilot_data <- read.csv("./data/w241_final_project_final_data_numeric1.csv", header = TRUE, stringsAsFactors=FALSE)
 
 pilot_data_char <- read.csv("./data/w241_final_project_final_data.csv", header = TRUE, stringsAsFactors=FALSE)
+
+pilot_data$date <-substr(pilot_data$StartDate, 1, 10)
+pilot_data_char$date <-substr(pilot_data_char$StartDate, 1, 10)
 
 #remove the header rows and preview data
 pilot_data1 <- pilot_data[-1:-2,]
 pilot_data1 <- pilot_data1[which(pilot_data1$DistributionChannel != 'preview'),]
-pilot_data1 <- pilot_data1[-1:-11,]
+pilot_data1 <- subset(pilot_data1, date != '2019-03-27')
+
 
 pilot_data_char1 <- pilot_data_char[-1:-2,]
 pilot_data_char1 <- pilot_data_char1[which(pilot_data_char1$DistributionChannel != 'preview'),]
-pilot_data_char1 <- pilot_data_char1[-1:-11,]
+pilot_data_char1 <- subset(pilot_data_char1, date != '2019-03-27')
+#pilot_data_char1 <- pilot_data_char1[-1:-12,]
 ```
 
 ```{r}
@@ -93,8 +96,8 @@ cv_balance1<-cbind(ResponseID, trsf)
 cv <- data.table(pilot_data_char1[c("treatment", "Q16", "Q18", "Q45", "Q20", "Q46", "Q47", "Q29")])
 cv <- subset(cv, !(is.na(treatment)))
 
-data(cv)
-cv <- tbl_df(cv)
+#data(cv)
+#cv <- tbl_df(cv)
 
 #Count frequency
 freq <- function(column) {
@@ -103,7 +106,7 @@ freq <- function(column) {
     mutate(freq = n / sum(n))
 }
 
-freq('Q16')
+#freq('Q16')
 
 
 
@@ -130,6 +133,27 @@ Q20 <- freq_table(cv, treatment, Q20)
 Q46 <- freq_table(cv, treatment, Q46)
 Q47 <- freq_table(cv, treatment, Q47)
 Q29 <- freq_table(cv, treatment, Q29)
+
+#Calculate the percent for entire group without considering treatment/ control
+freq_table2 <- function(x, 
+                       group_var, 
+                       prop_var) {
+  group_var <- enquo(group_var)
+  prop_var  <- enquo(prop_var)
+  x %>% 
+    group_by(!!prop_var) %>% 
+    summarise(n = n()) %>% 
+    mutate(freq = n /sum(n)) %>% 
+    ungroup
+}
+
+Q16b <- freq_table2(cv, treatment, Q16)
+Q18b <- freq_table2(cv, treatment, Q18)
+Q45b <- freq_table2(cv, treatment, Q45)
+Q20b <- freq_table2(cv, treatment, Q20)
+Q46b <- freq_table2(cv, treatment, Q46)
+Q47b <- freq_table2(cv, treatment, Q47)
+Q29b <- freq_table2(cv, treatment, Q29)
 ```
 
 
@@ -444,7 +468,37 @@ base_model <- lm(total_score ~ . , data = respondent_sum_w_cov1)
 summary(base_model)
 ```
 
+```{r}
+#Covariate balance check
 
+columns <- names(respondent_sum_w_cov)[-1]
+
+lm.test <- vector("list", length(columns))
+
+for(i in seq_along(columns)){
+    temp <- lm(reformulate(columns[i], "treatment"), data = respondent_sum_w_cov)
+    print(columns[i])
+
+    print(paste("Standard error:", coef(summary(temp))[2, 2]))
+    print(paste("P value: ", summary(temp)$coefficients[2,4] ))
+    
+    print("")
+}
+
+```
+
+
+
+```{r}
+##Check if males have a higher or lower average score than females within the same group
+
+respondent_sum_w_cov %>%
+    group_by(respondent_sum_w_cov$treatment, respondent_sum_w_cov$Q16Male) %>%
+    summarise_at(vars(total_score), funs(mean(., na.rm=TRUE)))
+
+
+
+```
 
 
 
